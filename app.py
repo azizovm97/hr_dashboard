@@ -11,7 +11,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 st.markdown(
     """
     <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem;">HR Дашборд</h1>
+        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Дашборд</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -26,7 +26,6 @@ with st.sidebar:
 
 # --- Вспомогательные функции ---
 def find_sheet_and_header(file_bytes, keywords):
-    """Ищет нужный лист по всем листам книги и возвращает имя листа и индекс заголовка."""
     xls = pd.ExcelFile(BytesIO(file_bytes))
     for sheet in xls.sheet_names:
         df_preview = pd.read_excel(xls, sheet_name=sheet, header=None, nrows=15)
@@ -67,7 +66,6 @@ def load_recruitment_data(file_bytes: bytes):
     if 'ФИО кандидата' in df.columns:
         df = df.dropna(subset=['ФИО кандидата'])
 
-    # Принудительная замена "Анкета" на "Анкета - референс"
     if 'Источник подбора' in df.columns:
         df['Источник подбора'] = df['Источник подбора'].replace({'Анкета': 'Анкета - референс'})
 
@@ -92,7 +90,6 @@ def load_recruitment_data(file_bytes: bytes):
     if 'Дата завершения стажировки' in df.columns:
         df['Дата завершения стажировки'] = pd.to_datetime(df['Дата завершения стажировки'], errors='coerce')
 
-    # Расчет дней стажировки, если есть даты, но нет готовой колонки
     if 'Дни стажировки' not in df.columns and 'Дата стажировки' in df.columns and 'Дата завершения стажировки' in df.columns:
         df['Дни стажировки'] = (df['Дата завершения стажировки'] - df['Дата стажировки']).dt.days
 
@@ -129,7 +126,7 @@ def load_training_data(file_bytes: bytes):
         df['Часы обучения'] = pd.to_numeric(df['Часы обучения'], errors='coerce', downcast='unsigned')
     return df
 
-# --- Сохранение файлов в Session State (защита от сброса при обновлении) ---
+# --- Сохранение файлов в Session State ---
 if recruitment_file:
     st.session_state['rec_bytes'] = recruitment_file.getvalue()
 if training_file:
@@ -149,7 +146,6 @@ tab1, tab2 = st.tabs(["Аналитика найма", "Корпоративно
 with tab1:
     if df_recruitment is not None:
         with st.form("recruitment_filters"):
-            # ФИЛЬТР ПО ДАТАМ (Защита от отсутствия дат)
             safe_dates_rec = df_recruitment['Дата регистрации'].dropna()
             if not safe_dates_rec.empty:
                 min_date_rec = safe_dates_rec.min().date()
@@ -173,7 +169,6 @@ with tab1:
                 selected_sources = st.multiselect("Источник привлечения", sources)
             submit = st.form_submit_button("Применить фильтры ⚡")
 
-        # ПРИМЕНЕНИЕ ФИЛЬТРОВ
         filtered_rec = df_recruitment.copy()
         
         if isinstance(date_range_rec, tuple) and len(date_range_rec) == 2:
@@ -190,14 +185,12 @@ with tab1:
         if selected_sources:
             filtered_rec = filtered_rec[filtered_rec['Источник подбора'].isin(selected_sources)]
 
-        # --- Базовые Метрики ---
         total_candidates = len(filtered_rec)
         hired_mask = filtered_rec['Принят на работу'].isin(['Штат', 'Стажёр', 'Волонтёр']) if 'Принят на работу' in filtered_rec.columns else pd.Series(False, index=filtered_rec.index)
         hired = hired_mask.sum()
         conv_rate = (hired / total_candidates * 100) if total_candidates > 0 else 0
         avg_age = filtered_rec[hired_mask]['Возраст'].mean() if 'Возраст' in filtered_rec.columns else np.nan
         
-        # Средние дни стажировки и Средний балл
         avg_intern_days = filtered_rec['Дни стажировки'].mean() if 'Дни стажировки' in filtered_rec.columns else np.nan
         avg_test_score = filtered_rec['Успешность_теста_%'].mean() if 'Успешность_теста_%' in filtered_rec.columns else np.nan
         
@@ -209,14 +202,12 @@ with tab1:
         else:
             gender_text = "Нет данных"
 
-        # Первая строка метрик
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Всего кандидатов", f"{total_candidates} чел.")
         m2.metric("Успешно трудоустроено", f"{hired} чел.")
         m3.metric("Конверсия в найм", f"{conv_rate:.1f}%")
         m4.metric("М / Ж (найм)", gender_text)
 
-        # Вторая строка метрик (дополнительная аналитика)
         s1, s2, s3, s4 = st.columns(4)
         s1.metric("Ср. возраст (найм)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
         s2.metric("Сред. результат теста", f"{avg_test_score:.1f}%" if not pd.isna(avg_test_score) else "Нет данных")
@@ -225,11 +216,10 @@ with tab1:
 
         st.divider()
 
-        # --- Источники подбора: Объем и Конверсия ---
         f_col1, f_col2 = st.columns(2)
         
         with f_col1:
-            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Источники подбора (Общее кол-во поступивших заявок)</b></div><br>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Источники подбора (Общее кол-во поступивших заявок)</b></div><br>", unsafe_allow_html=True)
             if 'Источник подбора' in filtered_rec.columns:
                 src_traffic = filtered_rec['Источник подбора'].astype(str).str.strip()
                 src_traffic = src_traffic.replace({'nan': 'Не указано', '': 'Не указано'})
@@ -243,7 +233,7 @@ with tab1:
                 st.plotly_chart(fig_source_vol, use_container_width=True)
 
         with f_col2:
-            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Источник найма (Конверсия)</b></div><br>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Источник найма (Конверсия)</b></div><br>", unsafe_allow_html=True)
             if 'Источник подбора' in filtered_rec.columns:
                 src_df = filtered_rec.copy()
                 src_df['Источник подбора'] = src_df['Источник подбора'].astype(str).str.strip()
@@ -271,8 +261,7 @@ with tab1:
 
         st.divider()
         
-        # --- Структура Кандидатов: Филиалы, ЦБО, HO ---
-        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура кандидатов: Филиалы, МХБ/ЦБО и HO</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура кандидатов: Филиалы, МХБ/ЦБО и HO</b></div><br>", unsafe_allow_html=True)
         r1, r2, r3 = st.columns(3)
 
         if 'Типы' in filtered_rec.columns and 'Все подразделения' in filtered_rec.columns:
@@ -326,7 +315,7 @@ with tab1:
                     st.info("Нет данных по МХБ/ЦБО")
                     
         st.divider()
-        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Динамика регистраций кандидатов</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Динамика регистраций кандидатов</b></div><br>", unsafe_allow_html=True)
         if 'Дата регистрации' in filtered_rec.columns:
             trend_data = filtered_rec.dropna(subset=['Дата регистрации']).copy()
             trend_data['Период'] = trend_data['Дата регистрации'].dt.to_period('M')
@@ -345,7 +334,6 @@ with tab1:
 with tab2:
     if df_training is not None:
         with st.form("training_filters"):
-            # ФИЛЬТР ПО ДАТАМ (Обучение)
             safe_dates_tr = df_training['Дата прохождения'].dropna()
             if not safe_dates_tr.empty:
                 min_date_tr = safe_dates_tr.min().date()
@@ -397,7 +385,7 @@ with tab2:
 
         st.divider()
 
-        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура обучения: Распределение по Отделам / Филиалам</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура обучения: Распределение по Отделам / Филиалам</b></div><br>", unsafe_allow_html=True)
         if 'Отдел' in filtered_tr.columns:
             dept_data = filtered_tr['Отдел'].astype(str).str.strip()
             dept_data = dept_data.replace({'nan': 'Не указано', '': 'Не указано'})
@@ -425,7 +413,7 @@ with tab2:
 
         t_g1, t_g2 = st.columns(2)
         with t_g1:
-            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Популярность образовательных курсов</b></div><br>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Популярность образовательных курсов</b></div><br>", unsafe_allow_html=True)
             if 'Название курса' in filtered_tr.columns:
                 course_data = filtered_tr['Название курса'].astype(str).str.strip()
                 course_data = course_data.replace({'nan': 'Не указано', '': 'Не указано'})
@@ -434,14 +422,13 @@ with tab2:
                 course_data.columns = ['Курс', 'Обучений']
                 course_data = course_data[course_data['Обучений'] > 0].sort_values('Обучений', ascending=True).tail(15)
                 
-                # Замена Treemap на более читаемый Bar Chart
                 fig_courses = px.bar(course_data, x='Обучений', y='Курс', orientation='h', 
                                      text='Обучений', color='Обучений', color_continuous_scale='Teal')
                 fig_courses.update_traces(textposition='outside')
                 st.plotly_chart(fig_courses, use_container_width=True)
 
         with t_g2:
-            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Успеваемость: Результат теста по Должностям</b></div><br>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Успеваемость: Результат теста по Должностям</b></div><br>", unsafe_allow_html=True)
             if 'Должность' in filtered_tr.columns and 'Результат теста (%)' in filtered_tr.columns:
                 pos_data = filtered_tr.dropna(subset=['Результат теста (%)']).copy()
                 pos_data['Должность_str'] = pos_data['Должность'].astype(str).str.strip()
@@ -454,7 +441,7 @@ with tab2:
                 st.plotly_chart(fig_pos, use_container_width=True)
                 
         st.divider()
-        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Нагрузка по должностям (Затраченные Часы)</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Нагрузка по должностям (Затраченные Часы)</b></div><br>", unsafe_allow_html=True)
         if 'Должность' in filtered_tr.columns and 'Часы обучения' in filtered_tr.columns:
             hours_data = filtered_tr.copy()
             hours_data['Должность_str'] = hours_data['Должность'].astype(str).str.strip()
