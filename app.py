@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from io import BytesIO
-from datetime import datetime
 
 # --- Настройка страницы ---
 st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
@@ -26,14 +25,16 @@ with st.sidebar:
     training_file = st.file_uploader("2. Файл по обучению", type=['xlsx'])
 
 # --- Вспомогательные функции ---
-def get_header_row_index(file_bytes, keywords):
-    """Принимает bytes, возвращает индекс строки-заголовка."""
-    df_preview = pd.read_excel(BytesIO(file_bytes), header=None, nrows=15)
-    for idx, row in df_preview.iterrows():
-        row_str = [str(v).lower().strip() if v is not None and not (isinstance(v, float) and np.isnan(v)) else '' for v in row]
-        if any(any(kw in val for kw in keywords) for val in row_str):
-            return idx
-    return 0
+def find_sheet_and_header(file_bytes, keywords):
+    """Ищет нужный лист по всем листам книги и возвращает имя листа и индекс заголовка."""
+    xls = pd.ExcelFile(BytesIO(file_bytes))
+    for sheet in xls.sheet_names:
+        df_preview = pd.read_excel(xls, sheet_name=sheet, header=None, nrows=15)
+        for idx, row in df_preview.iterrows():
+            row_str = [str(v).lower().strip() if v is not None and not (isinstance(v, float) and np.isnan(v)) else '' for v in row]
+            if any(any(kw in val for kw in keywords) for val in row_str):
+                return sheet, idx
+    return xls.sheet_names[0], 0
 
 def parse_test_score(val):
     if pd.isna(val):
@@ -59,16 +60,20 @@ def parse_test_score(val):
 # --- Загрузка и кэширование данных ---
 @st.cache_data(show_spinner=False)
 def load_recruitment_data(file_bytes: bytes):
-    header_idx = get_header_row_index(file_bytes, ['фио кандидата', 'вакансия'])
-    df = pd.read_excel(BytesIO(file_bytes), header=header_idx)
+    sheet, header_idx = find_sheet_and_header(file_bytes, ['фио кандидата', 'вакансия'])
+    df = pd.read_excel(BytesIO(file_bytes), sheet_name=sheet, header=header_idx)
     df.columns = df.columns.str.replace('\n', ' ').str.replace(r'\s+', ' ', regex=True).str.strip()
 
     if 'ФИО кандидата' in df.columns:
         df = df.dropna(subset=['ФИО кандидата'])
 
+    # Принудительная замена "Анкета" на "Анкета - референс"
+    if 'Источник подбора' in df.columns:
+        df['Источник подбора'] = df['Источник подбора'].replace({'Анкета': 'Анкета - референс'})
+
     cols_to_keep = ['Дата регистрации', 'Пол', 'Возраст', 'Вакансия', 'Типы', 'Все подразделения',
                     'Тест', 'Отправлен за документами', 'Принят на работу',
-                    'Источник подбора', 'Статус']
+                    'Источник подбора', 'Статус', 'Дата стажировки', 'Дата завершения стажировки', 'Дни стажировки']
     existing_cols = [col for col in cols_to_keep if col in df.columns]
     df = df[existing_cols]
 
@@ -81,6 +86,16 @@ def load_recruitment_data(file_bytes: bytes):
     if 'Дата регистрации' in df.columns:
         df['Дата регистрации'] = pd.to_datetime(df['Дата регистрации'], errors='coerce')
         
+    if 'Дата стажировки' in df.columns:
+        df['Дата стажировки'] = pd.to_datetime(df['Дата стажировки'], errors='coerce')
+        
+    if 'Дата завершения стажировки' in df.columns:
+        df['Дата завершения стажировки'] = pd.to_datetime(df['Дата завершения стажировки'], errors='coerce')
+
+    # Расчет дней стажировки, если есть даты, но нет готовой колонки
+    if 'Дни стажировки' not in df.columns and 'Дата стажировки' in df.columns and 'Дата завершения стажировки' in df.columns:
+        df['Дни стажировки'] = (df['Дата завершения стажировки'] - df['Дата стажировки']).dt.days
+
     if 'Возраст' in df.columns:
         df['Возраст'] = pd.to_numeric(df['Возраст'], errors='coerce')
 
@@ -90,8 +105,8 @@ def load_recruitment_data(file_bytes: bytes):
 
 @st.cache_data(show_spinner=False)
 def load_training_data(file_bytes: bytes):
-    header_idx = get_header_row_index(file_bytes, ['фио сотрудника', 'название курса'])
-    df = pd.read_excel(BytesIO(file_bytes), header=header_idx)
+    sheet, header_idx = find_sheet_and_header(file_bytes, ['фио сотрудника', 'название курса'])
+    df = pd.read_excel(BytesIO(file_bytes), sheet_name=sheet, header=header_idx)
     df.columns = df.columns.str.replace('\n', ' ').str.replace(r'\s+', ' ', regex=True).str.strip()
 
     if 'ФИО сотрудника' in df.columns:
@@ -114,19 +129,16 @@ def load_training_data(file_bytes: bytes):
         df['Часы обучения'] = pd.to_numeric(df['Часы обучения'], errors='coerce', downcast='unsigned')
     return df
 
-# --- Инициализация переменных ---
-df_recruitment = None
-df_training = None
+# --- Сохранение файлов в Session State (защита от сброса при обновлении) ---
+if recruitment_file:
+    st.session_state['rec_bytes'] = recruitment_file.getvalue()
+if training_file:
+    st.session_state['tr_bytes'] = training_file.getvalue()
 
-if recruitment_file is not None:
-    recruitment_bytes = recruitment_file.read()
-    df_recruitment = load_recruitment_data(recruitment_bytes)
+df_recruitment = load_recruitment_data(st.session_state['rec_bytes']) if 'rec_bytes' in st.session_state else None
+df_training = load_training_data(st.session_state['tr_bytes']) if 'tr_bytes' in st.session_state else None
 
-if training_file is not None:
-    training_bytes = training_file.read()
-    df_training = load_training_data(training_bytes)
-
-if recruitment_file is None and training_file is None:
+if df_recruitment is None and df_training is None:
     st.info("Загрузите файлы Excel в боковой панели слева для начала работы.")
     st.stop()
 
@@ -137,13 +149,13 @@ tab1, tab2 = st.tabs(["Аналитика найма", "Корпоративно
 with tab1:
     if df_recruitment is not None:
         with st.form("recruitment_filters"):
-            # ФИЛЬТР ПО ДАТАМ
+            # ФИЛЬТР ПО ДАТАМ (Защита от отсутствия дат)
             safe_dates_rec = df_recruitment['Дата регистрации'].dropna()
             if not safe_dates_rec.empty:
                 min_date_rec = safe_dates_rec.min().date()
                 max_date_rec = safe_dates_rec.max().date()
             else:
-                min_date_rec = pd.to_datetime('2020-01-01').date()
+                min_date_rec = pd.to_datetime('today').date()
                 max_date_rec = pd.to_datetime('today').date()
                 
             date_range_rec = st.date_input("Период регистрации", [min_date_rec, max_date_rec], min_value=min_date_rec, max_value=max_date_rec)
@@ -185,6 +197,10 @@ with tab1:
         conv_rate = (hired / total_candidates * 100) if total_candidates > 0 else 0
         avg_age = filtered_rec[hired_mask]['Возраст'].mean() if 'Возраст' in filtered_rec.columns else np.nan
         
+        # Средние дни стажировки и Средний балл
+        avg_intern_days = filtered_rec['Дни стажировки'].mean() if 'Дни стажировки' in filtered_rec.columns else np.nan
+        avg_test_score = filtered_rec['Успешность_теста_%'].mean() if 'Успешность_теста_%' in filtered_rec.columns else np.nan
+        
         if 'Пол' in filtered_rec.columns:
             hired_gender = filtered_rec[hired_mask]['Пол'].astype(str).str.strip().str.upper()
             m_count = hired_gender.str.startswith('М').sum()
@@ -193,12 +209,19 @@ with tab1:
         else:
             gender_text = "Нет данных"
 
-        m1, m2, m3, m4, m5 = st.columns(5)
+        # Первая строка метрик
+        m1, m2, m3, m4 = st.columns(4)
         m1.metric("Всего кандидатов", f"{total_candidates} чел.")
         m2.metric("Успешно трудоустроено", f"{hired} чел.")
         m3.metric("Конверсия в найм", f"{conv_rate:.1f}%")
-        m4.metric("Ср. возраст (найм)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
-        m5.metric("М / Ж (найм)", gender_text)
+        m4.metric("М / Ж (найм)", gender_text)
+
+        # Вторая строка метрик (дополнительная аналитика)
+        s1, s2, s3, s4 = st.columns(4)
+        s1.metric("Ср. возраст (найм)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
+        s2.metric("Сред. результат теста", f"{avg_test_score:.1f}%" if not pd.isna(avg_test_score) else "Нет данных")
+        s3.metric("Сред. дней стажировки", f"{avg_intern_days:.1f} дн." if not pd.isna(avg_intern_days) else "Нет данных")
+        s4.metric("Стажёров в воронке", f"{filtered_rec['Принят на работу'].isin(['Стажёр']).sum()}" if 'Принят на работу' in filtered_rec.columns else "Нет данных")
 
         st.divider()
 
@@ -206,7 +229,7 @@ with tab1:
         f_col1, f_col2 = st.columns(2)
         
         with f_col1:
-            st.subheader("Источники подбора (Общий объем трафика)")
+            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Источники подбора (Общее кол-во поступивших заявок)</b></div><br>", unsafe_allow_html=True)
             if 'Источник подбора' in filtered_rec.columns:
                 src_traffic = filtered_rec['Источник подбора'].astype(str).str.strip()
                 src_traffic = src_traffic.replace({'nan': 'Не указано', '': 'Не указано'})
@@ -216,12 +239,11 @@ with tab1:
                 
                 fig_source_vol = px.pie(src_traffic, names='Источник', values='Всего кандидатов',
                                         hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
-                # ИЗМЕНЕНИЕ: Теперь показываем "Название источника" и "Количество"
                 fig_source_vol.update_traces(textposition='inside', textinfo='label+value')
                 st.plotly_chart(fig_source_vol, use_container_width=True)
 
         with f_col2:
-            st.subheader("Качество источников (Конверсия в найм)")
+            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Источник найма (Конверсия)</b></div><br>", unsafe_allow_html=True)
             if 'Источник подбора' in filtered_rec.columns:
                 src_df = filtered_rec.copy()
                 src_df['Источник подбора'] = src_df['Источник подбора'].astype(str).str.strip()
@@ -250,7 +272,7 @@ with tab1:
         st.divider()
         
         # --- Структура Кандидатов: Филиалы, ЦБО, HO ---
-        st.subheader("Структура кандидатов: Филиалы, МХБ/ЦБО и HO")
+        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура кандидатов: Филиалы, МХБ/ЦБО и HO</b></div><br>", unsafe_allow_html=True)
         r1, r2, r3 = st.columns(3)
 
         if 'Типы' in filtered_rec.columns and 'Все подразделения' in filtered_rec.columns:
@@ -264,7 +286,7 @@ with tab1:
 
             with r1:
                 st.markdown("**1. Общее распределение (по Типам)**")
-                types_data = filtered_rec_copy['Типы_str'].value_counts().reset_index()
+                types_data = filtered_rec_copy['Типы_str'].value_counts(dropna=False).reset_index()
                 types_data.columns = ['Тип', 'Количество']
                 
                 if not types_data.empty:
@@ -277,8 +299,8 @@ with tab1:
 
             with r2:
                 st.markdown("**2. Внутри Филиалов**")
-                branches_df = filtered_rec_copy[filtered_rec_copy['Типы_str'].str.contains('Филиал|филиал', na=False)]
-                branch_data = branches_df['Подразделение_str'].value_counts().reset_index()
+                branches_df = filtered_rec_copy[filtered_rec_copy['Типы_str'].str.contains('Филиал|филиал', na=False, case=False)]
+                branch_data = branches_df['Подразделение_str'].value_counts(dropna=False).reset_index()
                 branch_data.columns = ['Филиал', 'Количество']
                 
                 if not branch_data.empty:
@@ -291,8 +313,8 @@ with tab1:
 
             with r3:
                 st.markdown("**3. Внутри МХБ / ЦБО**")
-                mhb_df = filtered_rec_copy[filtered_rec_copy['Типы_str'].str.contains('МХБ|ЦБО|мхб|цбо', na=False)]
-                mhb_data = mhb_df['Подразделение_str'].value_counts().reset_index()
+                mhb_df = filtered_rec_copy[filtered_rec_copy['Типы_str'].str.contains('МХБ|ЦБО|мхб|цбо', na=False, case=False)]
+                mhb_data = mhb_df['Подразделение_str'].value_counts(dropna=False).reset_index()
                 mhb_data.columns = ['МХБ/ЦБО', 'Количество']
                 
                 if not mhb_data.empty:
@@ -304,7 +326,7 @@ with tab1:
                     st.info("Нет данных по МХБ/ЦБО")
                     
         st.divider()
-        st.subheader("Динамика регистраций кандидатов")
+        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Динамика регистраций кандидатов</b></div><br>", unsafe_allow_html=True)
         if 'Дата регистрации' in filtered_rec.columns:
             trend_data = filtered_rec.dropna(subset=['Дата регистрации']).copy()
             trend_data['Период'] = trend_data['Дата регистрации'].dt.to_period('M')
@@ -329,7 +351,7 @@ with tab2:
                 min_date_tr = safe_dates_tr.min().date()
                 max_date_tr = safe_dates_tr.max().date()
             else:
-                min_date_tr = pd.to_datetime('2020-01-01').date()
+                min_date_tr = pd.to_datetime('today').date()
                 max_date_tr = pd.to_datetime('today').date()
                 
             date_range_tr = st.date_input("🗓️ Период обучения", [min_date_tr, max_date_tr], min_value=min_date_tr, max_value=max_date_tr)
@@ -375,12 +397,12 @@ with tab2:
 
         st.divider()
 
-        st.subheader("Структура обучения: Распределение по Отделам / Филиалам")
+        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Структура обучения: Распределение по Отделам / Филиалам</b></div><br>", unsafe_allow_html=True)
         if 'Отдел' in filtered_tr.columns:
             dept_data = filtered_tr['Отдел'].astype(str).str.strip()
             dept_data = dept_data.replace({'nan': 'Не указано', '': 'Не указано'})
             
-            dept_data = dept_data.value_counts().reset_index()
+            dept_data = dept_data.value_counts(dropna=False).reset_index()
             dept_data.columns = ['Отдел', 'Количество пройденных курсов']
             
             d_col1, d_col2 = st.columns(2)
@@ -403,20 +425,23 @@ with tab2:
 
         t_g1, t_g2 = st.columns(2)
         with t_g1:
-            st.subheader("Популярность образовательных курсов")
+            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Популярность образовательных курсов</b></div><br>", unsafe_allow_html=True)
             if 'Название курса' in filtered_tr.columns:
                 course_data = filtered_tr['Название курса'].astype(str).str.strip()
                 course_data = course_data.replace({'nan': 'Не указано', '': 'Не указано'})
                 
-                course_data = course_data.value_counts().reset_index()
+                course_data = course_data.value_counts(dropna=False).reset_index()
                 course_data.columns = ['Курс', 'Обучений']
-                course_data = course_data[course_data['Обучений'] > 0]
-                fig_courses = px.treemap(course_data, path=['Курс'], values='Обучений',
-                                         color='Обучений', color_continuous_scale='Teal')
+                course_data = course_data[course_data['Обучений'] > 0].sort_values('Обучений', ascending=True).tail(15)
+                
+                # Замена Treemap на более читаемый Bar Chart
+                fig_courses = px.bar(course_data, x='Обучений', y='Курс', orientation='h', 
+                                     text='Обучений', color='Обучений', color_continuous_scale='Teal')
+                fig_courses.update_traces(textposition='outside')
                 st.plotly_chart(fig_courses, use_container_width=True)
 
         with t_g2:
-            st.subheader("Успеваемость: Результат теста по Должностям")
+            st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Успеваемость: Результат теста по Должностям</b></div><br>", unsafe_allow_html=True)
             if 'Должность' in filtered_tr.columns and 'Результат теста (%)' in filtered_tr.columns:
                 pos_data = filtered_tr.dropna(subset=['Результат теста (%)']).copy()
                 pos_data['Должность_str'] = pos_data['Должность'].astype(str).str.strip()
@@ -429,7 +454,7 @@ with tab2:
                 st.plotly_chart(fig_pos, use_container_width=True)
                 
         st.divider()
-        st.subheader("Нагрузка по должностям (Затраченные Часы)")
+        st.markdown("<div style='border: 2px solid red; padding: 10px; border-radius: 8px; text-align: center;'><b>Нагрузка по должностям (Затраченные Часы)</b></div><br>", unsafe_allow_html=True)
         if 'Должность' in filtered_tr.columns and 'Часы обучения' in filtered_tr.columns:
             hours_data = filtered_tr.copy()
             hours_data['Должность_str'] = hours_data['Должность'].astype(str).str.strip()
