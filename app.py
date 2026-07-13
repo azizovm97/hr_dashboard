@@ -189,7 +189,7 @@ with tab1:
                 src_traffic.columns = ['Источник', 'Всего кандидатов']
                 fig_source_vol = px.pie(src_traffic, names='Источник', values='Всего кандидатов', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
                 fig_source_vol.update_traces(textposition='auto', textinfo='label+value')
-                st.plotly_chart(fig_source_vol, use_container_width=True)
+                st.plotly_chart(fig_source_vol, use_container_width=True, key="fig_source_vol_tab1")
 
         with f_col2:
             st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Эффективность подбора персонала</b></div><br>", unsafe_allow_html=True)
@@ -204,7 +204,7 @@ with tab1:
                 fig_src_conv = px.bar(src_conv, x='Конверсия %', y='Источник подбора', orientation='h', text='Текст на графике', color='Конверсия %', color_continuous_scale='Greens')
                 fig_src_conv.update_traces(textposition='outside')
                 fig_src_conv.update_layout(xaxis_range=[0, src_conv['Конверсия %'].max() * 1.3 if src_conv['Конверсия %'].max() > 0 else 100])
-                st.plotly_chart(fig_src_conv, use_container_width=True)
+                st.plotly_chart(fig_src_conv, use_container_width=True, key="fig_src_conv_tab1")
 
         st.divider()
 
@@ -225,7 +225,7 @@ with tab1:
                     fig_types = px.pie(types_data, names='Тип', values='Количество', hole=0.4)
                     fig_types.update_traces(textposition='auto', textinfo='label+percent') 
                     fig_types.update_layout(showlegend=False)
-                    st.plotly_chart(fig_types, use_container_width=True)
+                    st.plotly_chart(fig_types, use_container_width=True, key="fig_types_tab1")
 
             with r2:
                 st.markdown("**2. Общее количество кандидатов по Филиалам**")
@@ -236,7 +236,7 @@ with tab1:
                     fig_branch = px.pie(branch_data, names='Филиал', values='Количество', hole=0.4)
                     fig_branch.update_traces(textposition='auto', textinfo='label+value')
                     fig_branch.update_layout(showlegend=False)
-                    st.plotly_chart(fig_branch, use_container_width=True)
+                    st.plotly_chart(fig_branch, use_container_width=True, key="fig_branch_tab1")
 
             with r3:
                 st.markdown("**3. Общее количество кандидатов по ЦБО**")
@@ -247,7 +247,7 @@ with tab1:
                     fig_mhb = px.pie(mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
                     fig_mhb.update_traces(textposition='auto', textinfo='label+value')
                     fig_mhb.update_layout(showlegend=False)
-                    st.plotly_chart(fig_mhb, use_container_width=True)
+                    st.plotly_chart(fig_mhb, use_container_width=True, key="fig_mhb_tab1")
 
         st.divider()
 
@@ -271,7 +271,7 @@ with tab1:
                     fig_hired_reg = px.pie(hired_reg_data, names='Регион', values='Количество', hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
                     fig_hired_reg.update_traces(textposition='auto', textinfo='label+percent') 
                     fig_hired_reg.update_layout(showlegend=False)
-                    st.plotly_chart(fig_hired_reg, use_container_width=True)
+                    st.plotly_chart(fig_hired_reg, use_container_width=True, key="fig_hired_reg_tab1")
                 else:
                     st.info("Нет данных о найме")
 
@@ -285,7 +285,7 @@ with tab1:
                     fig_hired_branch = px.pie(hired_branch_data, names='Филиал', values='Количество', hole=0.4)
                     fig_hired_branch.update_traces(textposition='auto', textinfo='label+value')
                     fig_hired_branch.update_layout(showlegend=False)
-                    st.plotly_chart(fig_hired_branch, use_container_width=True)
+                    st.plotly_chart(fig_hired_branch, use_container_width=True, key="fig_hired_branch_tab1")
                 else:
                     st.info("В филиалах нет найма за этот период")
 
@@ -299,7 +299,7 @@ with tab1:
                     fig_hired_mhb = px.pie(hired_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
                     fig_hired_mhb.update_traces(textposition='auto', textinfo='label+value')
                     fig_hired_mhb.update_layout(showlegend=False)
-                    st.plotly_chart(fig_hired_mhb, use_container_width=True)
+                    st.plotly_chart(fig_hired_mhb, use_container_width=True, key="fig_hired_mhb_tab1")
                 else:
                     st.info("В МХБ / ЦБО нет найма за этот период")
 
@@ -316,7 +316,7 @@ with tab1:
                 
                 fig_trend = px.line(trend_counts, x='Период', y='Кандидаты', markers=True, color_discrete_sequence=['#ff7f0e'])
                 fig_trend.update_xaxes(type='category')
-                st.plotly_chart(fig_trend, use_container_width=True)
+                st.plotly_chart(fig_trend, use_container_width=True, key="fig_trend_tab1")
             else:
                 st.info("Нет данных по датам для построения графика.")
     else:
@@ -373,7 +373,7 @@ with tab2:
                     fig_int_reg = px.pie(int_reg_data, names='Регион', values='Количество', hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
                     fig_int_reg.update_traces(textposition='auto', textinfo='label+percent')
                     fig_int_reg.update_layout(showlegend=False)
-                    st.plotly_chart(fig_int_reg, use_container_width=True)
+                    st.plotly_chart(fig_int_reg, use_container_width=True, key="fig_int_reg_tab2")
                 else:
                     st.info("Нет данных")
 
@@ -387,7 +387,7 @@ with tab2:
                     fig_int_branch = px.pie(int_branch_data, names='Филиал', values='Количество', hole=0.4)
                     fig_int_branch.update_traces(textposition='auto', textinfo='label+value')
                     fig_int_branch.update_layout(showlegend=False)
-                    st.plotly_chart(fig_int_branch, use_container_width=True)
+                    st.plotly_chart(fig_int_branch, use_container_width=True, key="fig_int_branch_tab2")
                 else:
                     st.info("В филиалах нет стажёров")
 
@@ -401,7 +401,7 @@ with tab2:
                     fig_int_mhb = px.pie(int_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
                     fig_int_mhb.update_traces(textposition='auto', textinfo='label+value')
                     fig_int_mhb.update_layout(showlegend=False)
-                    st.plotly_chart(fig_int_mhb, use_container_width=True)
+                    st.plotly_chart(fig_int_mhb, use_container_width=True, key="fig_int_mhb_tab2")
                 else:
                     st.info("В ЦБО нет стажёров")
 
@@ -416,7 +416,7 @@ with tab2:
             fig_vac_int = px.bar(vac_counts.head(15), x='Количество', y='Вакансия', orientation='h', text='Количество', color='Количество', color_continuous_scale='Purples')
             fig_vac_int.update_traces(textposition='outside')
             fig_vac_int.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_vac_int, use_container_width=True)
+            st.plotly_chart(fig_vac_int, use_container_width=True, key="fig_vac_int_tab2")
 
     else:
         st.warning("Нет данных по стажёрам. Загрузите файл по найму.")
@@ -455,7 +455,7 @@ with tab3:
                     fig_att_reg = px.pie(att_reg_data, names='Регион', values='Количество', hole=0.4, color_discrete_sequence=px.colors.qualitative.Set3)
                     fig_att_reg.update_traces(textposition='auto', textinfo='label+value')
                     fig_att_reg.update_layout(showlegend=False)
-                    st.plotly_chart(fig_att_reg, use_container_width=True)
+                    st.plotly_chart(fig_att_reg, use_container_width=True, key="fig_att_reg_tab3")
                 else:
                     st.info("Нет данных")
 
@@ -469,7 +469,7 @@ with tab3:
                     fig_att_branch = px.pie(att_branch_data, names='Филиал', values='Количество', hole=0.4)
                     fig_att_branch.update_traces(textposition='auto', textinfo='label+value')
                     fig_att_branch.update_layout(showlegend=False)
-                    st.plotly_chart(fig_att_branch, use_container_width=True)
+                    st.plotly_chart(fig_att_branch, use_container_width=True, key="fig_att_branch_tab3")
                 else:
                     st.info("В филиалах нет данных")
 
@@ -483,7 +483,7 @@ with tab3:
                     fig_att_mhb = px.pie(att_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
                     fig_att_mhb.update_traces(textposition='auto', textinfo='label+value')
                     fig_att_mhb.update_layout(showlegend=False)
-                    st.plotly_chart(fig_att_mhb, use_container_width=True)
+                    st.plotly_chart(fig_att_mhb, use_container_width=True, key="fig_att_mhb_tab3")
                 else:
                     st.info("В ЦБО нет данных")
         else:
@@ -561,7 +561,7 @@ with tab4:
                             text='Количество', color_discrete_map={'План': '#ff7f0e', 'Факт': '#2ca02c'})
             fig_pf.update_traces(textposition='outside')
             fig_pf.update_layout(yaxis={'categoryorder':'total ascending'}, legend_title_text='Легенда')
-            st.plotly_chart(fig_pf, use_container_width=True)
+            st.plotly_chart(fig_pf, use_container_width=True, key="fig_pf_tab4")
 
     else:
         st.warning("Файл по обучению не загружен.")
@@ -612,7 +612,7 @@ with tab5:
                     fig_staff_reg = px.pie(staff_reg_data, names='Регион', values='Количество', hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
                     fig_staff_reg.update_traces(textposition='auto', textinfo='label+percent')
                     fig_staff_reg.update_layout(showlegend=False)
-                    st.plotly_chart(fig_staff_reg, use_container_width=True)
+                    st.plotly_chart(fig_staff_reg, use_container_width=True, key="fig_staff_reg_tab5")
                 else:
                     st.info("Нет данных")
 
@@ -626,7 +626,7 @@ with tab5:
                     fig_staff_branch = px.pie(staff_branch_data, names='Филиал', values='Количество', hole=0.4)
                     fig_staff_branch.update_traces(textposition='auto', textinfo='label+value')
                     fig_staff_branch.update_layout(showlegend=False)
-                    st.plotly_chart(fig_staff_branch, use_container_width=True)
+                    st.plotly_chart(fig_staff_branch, use_container_width=True, key="fig_staff_branch_tab5")
                 else:
                     st.info("В филиалах нет данных")
 
@@ -640,7 +640,7 @@ with tab5:
                     fig_staff_mhb = px.pie(staff_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
                     fig_staff_mhb.update_traces(textposition='auto', textinfo='label+value')
                     fig_staff_mhb.update_layout(showlegend=False)
-                    st.plotly_chart(fig_staff_mhb, use_container_width=True)
+                    st.plotly_chart(fig_staff_mhb, use_container_width=True, key="fig_staff_mhb_tab5")
                 else:
                     st.info("В ЦБО нет данных")
         else:
@@ -669,7 +669,7 @@ with tab5:
                 fig_staff_trend = px.line(staff_counts, x='Период', y='Количество записей (сотрудников)', markers=True, color_discrete_sequence=['#2ca02c'])
                 fig_staff_trend.update_xaxes(type='category')
                 fig_staff_trend.update_layout(xaxis_title="Месяц", yaxis_title="Численность", hovermode="x unified")
-                st.plotly_chart(fig_staff_trend, use_container_width=True)
+                st.plotly_chart(fig_staff_trend, use_container_width=True, key="fig_staff_trend_tab5")
             else:
                 st.info(f"Не удалось распознать даты в колонке {target_date_col}.")
         else:
