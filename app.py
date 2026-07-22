@@ -818,7 +818,7 @@ with tab5:
 
 # === ВКЛАДКА 6: GALLUP ===
 with tab6:
-    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика вовлеченности: Gallup Q12</b></div><br>", unsafe_allow_html=True)
+    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика вовлеченности (Gallup)</b></div><br>", unsafe_allow_html=True)
     
     try:
         sheet_name_gallup = find_specific_sheet(file_bytes, ['gallup', 'галлоп', 'вовлеченность'])
