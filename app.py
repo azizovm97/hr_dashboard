@@ -383,7 +383,7 @@ with tab1:
             src_conv['Конверсия %'] = (src_conv['Hired'] / src_conv['Total'] * 100).round(1)
             src_conv = src_conv[src_conv['Total'] > 0].sort_values('Конверсия %', ascending=True)
             src_conv['Текст на графике'] = src_conv['Конверсия %'].astype(str) + '% (' + src_conv['Hired'].astype(str) + ' из ' + src_conv['Total'].astype(str) + ')'
-            fig_src_conv = px.bar(src_conv, x='', y='', orientation='h', text='Текст на графике', color='Конверсия %', color_continuous_scale='Greens')
+            fig_src_conv = px.bar(src_conv, x=' ', y=' ', orientation='h', text='Текст на графике', color='Конверсия %', color_continuous_scale='Greens')
             fig_src_conv.update_traces(textposition='outside')
             fig_src_conv.update_layout(xaxis_range=[0, src_conv['Конверсия %'].max() * 1.3 if src_conv['Конверсия %'].max() > 0 else 100], coloraxis_colorbar=dict(title=""))
             st.plotly_chart(fig_src_conv, use_container_width=True, key="fig_src_conv_tab1")
