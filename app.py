@@ -13,7 +13,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 st.markdown(
     """
     <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Дашборд</h1>
+        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR DASHBOARD</h1>
     </div>
     """,
     unsafe_allow_html=True
