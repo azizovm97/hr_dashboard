@@ -13,7 +13,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 st.markdown(
     """
     <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR DASHBOARD</h1>
+        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Dashboard</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -57,13 +57,13 @@ if 'name' not in st.session_state:
 
 # --- Боковая панель: Авторизация и Админ-панель ---
 with st.sidebar:
-    st.header("🔐 Авторизация")
+    st.header("Авторизация")
     
     if not st.session_state['authenticated']:
         with st.form("login_form"):
             username_input = st.text_input("Логин")
             password_input = st.text_input("Пароль", type="password")
-            submit_login = st.form_submit_button("Войти 🚀")
+            submit_login = st.form_submit_button("Войти")
             
             if submit_login:
                 db = st.session_state['users_db']
@@ -78,7 +78,7 @@ with st.sidebar:
         st.stop()
     else:
         st.success(f"Вы вошли как:\n**{st.session_state['name']}**\n*(Права: {st.session_state['role'].upper()})*")
-        if st.button("Выйти (Logout) 🚪"):
+        if st.button("Выход"):
             st.session_state['authenticated'] = False
             st.session_state['username'] = ""
             st.session_state['role'] = ""
@@ -89,7 +89,7 @@ with st.sidebar:
 
     # --- ПАНЕЛЬ УПРАВЛЕНИЯ ДЛЯ АДМИНА ---
     if st.session_state['role'] == "admin":
-        with st.expander("🛠️ Админ-панель", expanded=False):
+        with st.expander(" Админ-панель", expanded=False):
             st.subheader("Изменить пароль")
             target_user = st.selectbox("Выберите пользователя", list(st.session_state['users_db'].keys()))
             new_pass = st.text_input("Новый пароль", type="password", key="new_pass_input")
@@ -127,11 +127,11 @@ with st.sidebar:
 
         st.divider()
 
-    st.header("📂 Управление данными")
+    st.header("Управление данными")
     file_bytes = None
 
     if st.session_state['role'] == 'admin':
-        st.markdown("Загрузить новую версию файла:")
+        st.markdown("Загрузить новый excel - файла:")
         uploaded_file = st.file_uploader("Загрузить единый Excel-файл", type=['xlsx'])
         
         if uploaded_file is not None:
