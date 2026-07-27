@@ -1005,4 +1005,157 @@ with tab6:
                                     st.info(f"{q}: Нет данных")
 
                     st.divider()
-                    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Сравнение показателей вовлеченности (Q1-Q12)</b></div><br
+                    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Сравнение показателей вовлеченности (Q1-Q12)</b></div><br>", unsafe_allow_html=True)
+                    
+                    plot_cols = numeric_cols.copy()
+                    for c in [col_enps, col_sent, col_part, col_detractors, col_passives, col_promoters, col_engagement]:
+                        if c and c in plot_cols:
+                            plot_cols.remove(c)
+
+                    if plot_cols:
+                        df_melted_gallup = df_gallup_filtered.melt(
+                            id_vars=[q_col], 
+                            value_vars=plot_cols, 
+                            var_name='Показатель', 
+                            value_name='Оценка'
+                        )
+                        
+                        fig_gallup_all = px.bar(
+                            df_melted_gallup, 
+                            x='Показатель', 
+                            y='Оценка', 
+                            color=q_col, 
+                            barmode='group',
+                            text='Оценка',
+                            color_discrete_sequence=px.colors.qualitative.Set2
+                        )
+                        fig_gallup_all.update_traces(textposition='outside')
+                        fig_gallup_all.update_layout(xaxis_tickangle=-45)
+                        fig_gallup_all = apply_side_legend(fig_gallup_all)
+                        st.plotly_chart(fig_gallup_all, use_container_width=True, key="fig_gallup_all_metrics")
+                        
+                        st.divider()
+                        st.markdown("#### Лепестковая диаграмма вовлеченности (Радар)")
+                        fig_radar = px.line_polar(
+                            df_melted_gallup,
+                            r='Оценка',
+                            theta='Показатель',
+                            color=q_col,
+                            line_close=True,
+                            markers=True,
+                            color_discrete_sequence=px.colors.qualitative.Set2
+                        )
+                        fig_radar.update_layout(
+                            polar=dict(radialaxis=dict(visible=True, range=[0, df_melted_gallup['Оценка'].max() * 1.1]))
+                        )
+                        st.plotly_chart(fig_radar, use_container_width=True, key="fig_gallup_radar")
+
+                    st.markdown("#### Подробные данные опроса Gallup")
+                    st.dataframe(df_gallup_filtered, use_container_width=True)
+                else:
+                    st.warning("⚠️ Пожалуйста, выберите хотя бы один квартал из фильтра выше.")
+            else:
+                st.info("Колонка с кварталом не обнаружена автоматически. Ниже приведена полная таблица Gallup:")
+                st.dataframe(df_gallup, use_container_width=True)
+        else:
+            st.warning("Лист с названием 'Gallup' не найден в загруженном файле HR_data.xlsx.")
+    except Exception as e:
+        st.error(f"Ошибка при чтении листа Gallup: {e}")
+
+# === ВКЛАДКА 7: ДАРАҶА ===
+with tab7:
+    if df_daraja is not None:
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика: Изменение грейда (Дараҷа)</b></div><br>", unsafe_allow_html=True)
+        
+        date_col_daraja = next((c for c in df_daraja.columns if 'дата' in c.lower()), None)
+        
+        if date_col_daraja:
+            df_daraja[date_col_daraja] = pd.to_datetime(df_daraja[date_col_daraja], errors='coerce')
+            safe_dates_daraja = df_daraja[date_col_daraja].dropna()
+            
+            if not safe_dates_daraja.empty:
+                min_date_d = safe_dates_daraja.min().date()
+                max_date_d = safe_dates_daraja.max().date()
+                
+                with st.form("daraja_filters"):
+                    date_range_d = st.date_input("Период (Дата интервью)", [min_date_d, max_date_d], min_value=min_date_d, max_value=max_date_d)
+                    submit_d = st.form_submit_button("Применить фильтры ⚡")
+                    
+                if isinstance(date_range_d, tuple) and len(date_range_d) == 2:
+                    df_daraja = df_daraja[(df_daraja[date_col_daraja].dt.date >= date_range_d[0]) & (df_daraja[date_col_daraja].dt.date <= date_range_d[1])]
+        
+        comment_col = next((c for c in df_daraja.columns if 'комментарий' in c.lower() or 'результат' in c.lower()), None)
+        dept_col = next((c for c in df_daraja.columns if 'департамент' in c.lower() or 'подразделение' in c.lower()), None)
+        type_col = next((c for c in df_daraja.columns if 'тип' in c.lower()), None)
+        
+        if comment_col:
+            df_daraja['Комментарий_clean'] = df_daraja[comment_col].astype(str).str.strip()
+            df_daraja = df_daraja[~df_daraja['Комментарий_clean'].isin(['nan', 'None', '', 'NaT'])]
+            
+            total_daraja = len(df_daraja)
+            
+            passed = df_daraja['Комментарий_clean'].str.contains('прошёл|успешно|сдал', case=False, na=False).sum()
+            failed = df_daraja['Комментарий_clean'].str.contains('не прошёл|отказ|не сдал', case=False, na=False).sum()
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Всего кандидатов на дараҷа", f"{total_daraja} чел.")
+            m2.markdown(f"""
+                <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #2e7d32;">
+                    <p style="margin:0; font-size: 14px; color: #555;">Успешно (Прошёл)</p>
+                    <h3 style="margin:0; color: #2e7d32;">{passed} чел.</h3>
+                </div>
+            """, unsafe_allow_html=True)
+            m3.markdown(f"""
+                <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; border-left: 5px solid #c62828;">
+                    <p style="margin:0; font-size: 14px; color: #555;">Не успешно (Не прошёл)</p>
+                    <h3 style="margin:0; color: #c62828;">{failed} чел.</h3>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            st.divider()
+            
+            st.markdown("#### Статус прохождения (по комментариям)")
+            comment_counts = df_daraja['Комментарий_clean'].value_counts().reset_index()
+            comment_counts.columns = ['Результат', 'Количество']
+            
+            color_discrete_map = {}
+            for res in comment_counts['Результат']:
+                res_lower = res.lower()
+                if 'не прошёл' in res_lower or 'не сдал' in res_lower:
+                    color_discrete_map[res] = '#d62728'
+                elif 'прошёл' in res_lower or 'сдал' in res_lower:
+                    color_discrete_map[res] = '#2ca02c'
+                else:
+                    color_discrete_map[res] = '#1f77b4'
+
+            fig_comm = px.pie(comment_counts, names='Результат', values='Количество', hole=0.4, color='Результат', color_discrete_map=color_discrete_map)
+            fig_comm.update_traces(textposition='auto', textinfo='value+percent')
+            fig_comm = apply_side_legend(fig_comm)
+            st.plotly_chart(fig_comm, use_container_width=False)
+            
+        st.divider()
+        st.markdown("#### Разбивка по департаментам и регионам")
+        
+        if dept_col:
+            df_daraja['Подразделение_clean'] = df_daraja[dept_col].astype(str).str.strip().replace({'nan': 'Не указано', '': 'Не указано'})
+            dept_counts = df_daraja['Подразделение_clean'].value_counts().reset_index()
+            dept_counts.columns = ['Подразделение', 'Количество']
+            fig_dept = px.bar(dept_counts.head(15), x='Количество', y='Подразделение', orientation='h', text='Количество', color='Количество', color_continuous_scale='Blues')
+            fig_dept.update_traces(textposition='outside')
+            fig_dept.update_layout(yaxis={'categoryorder':'total ascending'}, coloraxis_colorbar=dict(title=""))
+            st.plotly_chart(fig_dept, use_container_width=True)
+            
+        if type_col:
+            df_daraja['Тип_clean'] = df_daraja[type_col].astype(str).str.strip().apply(categorize_region)
+            type_counts = df_daraja['Тип_clean'].value_counts().reset_index()
+            type_counts.columns = ['Регион (Тип)', 'Количество']
+            fig_type = px.pie(type_counts, names='Регион (Тип)', values='Количество', hole=0.4, color_discrete_sequence=px.colors.qualitative.Set3)
+            fig_type.update_traces(textposition='auto', textinfo='value')
+            fig_type = apply_side_legend(fig_type)
+            st.plotly_chart(fig_type, use_container_width=False)
+            
+        st.markdown("#### Детальные данные")
+        st.dataframe(df_daraja, use_container_width=True)
+        
+    else:
+        st.warning("Файл по Дараҷа не загружен.")
