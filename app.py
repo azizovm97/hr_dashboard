@@ -61,13 +61,13 @@ if 'name' not in st.session_state:
 
 # --- Боковая панель: Авторизация и Админ-панель ---
 with st.sidebar:
-    st.header("🔐 Авторизация")
+    st.header("Авторизация")
     
     if not st.session_state['authenticated']:
         with st.form("login_form"):
             username_input = st.text_input("Логин")
             password_input = st.text_input("Пароль", type="password")
-            submit_login = st.form_submit_button("Войти 🚀")
+            submit_login = st.form_submit_button("Войти")
             
             if submit_login:
                 db = st.session_state['users_db']
@@ -78,11 +78,11 @@ with st.sidebar:
                     st.session_state['name'] = db[username_input]["name"]
                     st.rerun()
                 else:
-                    st.error("Неверный логин или пароль ❌")
+                    st.error("Неверный логин или пароль")
         st.stop()
     else:
-        st.success(f"Вы вошли как:\n**{st.session_state['name']}**\n*(Права: {st.session_state['role'].upper()})*")
-        if st.button("Выйти (Logout) 🚪"):
+        st.success(f"Вы вошли как:\n**{st.session_state['name']}**")
+        if st.button("Выйти"):
             st.session_state['authenticated'] = False
             st.session_state['username'] = ""
             st.session_state['role'] = ""
@@ -93,7 +93,7 @@ with st.sidebar:
 
     # --- ПАНЕЛЬ УПРАВЛЕНИЯ ДЛЯ АДМИНА ---
     if st.session_state['role'] == "admin":
-        with st.expander("🛠️ Админ-панель", expanded=False):
+        with st.expander("Админ-панель", expanded=False):
             st.subheader("Изменить пароль")
             target_user = st.selectbox("Выберите пользователя", list(st.session_state['users_db'].keys()))
             new_pass = st.text_input("Новый пароль", type="password", key="new_pass_input")
@@ -131,12 +131,12 @@ with st.sidebar:
 
         st.divider()
 
-    st.header("📂 Управление данными")
+    st.header("Управление данными")
     file_bytes = None
 
     if st.session_state['role'] == 'admin':
-        st.markdown("Загрузить новую версию файла:")
-        uploaded_file = st.file_uploader("Загрузить единый Excel-файл", type=['xlsx'])
+        st.markdown("Загрузить обновленный файла:")
+        uploaded_file = st.file_uploader("Загрузить Excel-файл", type=['xlsx'])
         
         if uploaded_file is not None:
             file_bytes = uploaded_file.getvalue()
@@ -144,7 +144,7 @@ with st.sidebar:
                 f.write(file_bytes)
             st.success("Файл успешно обновлен!")
     else:
-        st.info("👁️ У вас права на просмотр. Загрузка файлов заблокирована.")
+        st.info("У вас права на просмотр. Загрузка файлов заблокирована.")
 
     if not file_bytes and os.path.exists(DEFAULT_FILENAME):
         with open(DEFAULT_FILENAME, "rb") as f:
