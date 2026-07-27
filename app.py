@@ -13,7 +13,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 st.markdown(
     """
     <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Дашборд</h1>
+        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Dashboard</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -27,6 +27,10 @@ USERS_FILE = "users.json"
 def load_users():
     default_users = {
         "admin": {"password": "admin123", "role": "admin", "name": "Главный Администратор"},
+        "OKevorkova": {"password": "Dashboard", "role": "admin", "name": "Олеся Кеворкова"},
+        "MIsmatulloeva": {"password": "Dashboard", "role": "admin", "name": "Малика Исматуллоева"},
+        "AAhtamdzhonov": {"password": "Dashboard", "role": "admin", "name": "Алишер Ахтамджонов"},
+        "IJuraev": {"password": "Dashboard", "role": "viewer", "name": "Исмоил Джураев"},
         "viewer1": {"password": "viewer123", "role": "viewer", "name": "Сотрудник (Просмотр)"}
     }
     if os.path.exists(USERS_FILE):
