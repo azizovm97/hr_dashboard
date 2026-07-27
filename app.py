@@ -13,7 +13,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 st.markdown(
     """
     <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Dashboard</h1>
+        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Дашборд</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -57,13 +57,13 @@ if 'name' not in st.session_state:
 
 # --- Боковая панель: Авторизация и Админ-панель ---
 with st.sidebar:
-    st.header("Авторизация")
+    st.header("🔐 Авторизация")
     
     if not st.session_state['authenticated']:
         with st.form("login_form"):
             username_input = st.text_input("Логин")
             password_input = st.text_input("Пароль", type="password")
-            submit_login = st.form_submit_button("Войти")
+            submit_login = st.form_submit_button("Войти 🚀")
             
             if submit_login:
                 db = st.session_state['users_db']
@@ -78,7 +78,7 @@ with st.sidebar:
         st.stop()
     else:
         st.success(f"Вы вошли как:\n**{st.session_state['name']}**\n*(Права: {st.session_state['role'].upper()})*")
-        if st.button("Выход"):
+        if st.button("Выйти (Logout) 🚪"):
             st.session_state['authenticated'] = False
             st.session_state['username'] = ""
             st.session_state['role'] = ""
@@ -89,7 +89,7 @@ with st.sidebar:
 
     # --- ПАНЕЛЬ УПРАВЛЕНИЯ ДЛЯ АДМИНА ---
     if st.session_state['role'] == "admin":
-        with st.expander(" Админ-панель", expanded=False):
+        with st.expander("🛠️ Админ-панель", expanded=False):
             st.subheader("Изменить пароль")
             target_user = st.selectbox("Выберите пользователя", list(st.session_state['users_db'].keys()))
             new_pass = st.text_input("Новый пароль", type="password", key="new_pass_input")
@@ -127,11 +127,11 @@ with st.sidebar:
 
         st.divider()
 
-    st.header("Управление данными")
+    st.header("📂 Управление данными")
     file_bytes = None
 
     if st.session_state['role'] == 'admin':
-        st.markdown("Загрузить новый excel - файла:")
+        st.markdown("Загрузить новую версию файла:")
         uploaded_file = st.file_uploader("Загрузить единый Excel-файл", type=['xlsx'])
         
         if uploaded_file is not None:
@@ -163,6 +163,7 @@ def find_sheet_and_header(file_bytes, keywords):
     return xls.sheet_names[0], 0
 
 def find_specific_sheet(file_bytes, target_keywords):
+    """Ищет лист по ключевым словам в названии"""
     xls = pd.ExcelFile(BytesIO(file_bytes))
     for sheet in xls.sheet_names:
         sheet_lower = sheet.lower().strip()
@@ -486,7 +487,9 @@ with tab1:
                 trend_counts = trend_data['Период'].value_counts().reset_index().sort_values('Период')
                 trend_counts.columns = ['Период', 'Кандидаты']
                 
-                fig_trend = px.line(trend_counts, x='Период', y='Кандидаты', markers=True, color_discrete_sequence=['#ff7f0e'])
+                # ИЗМЕНЕНИЕ: добавлены цифры над каждой точкой
+                fig_trend = px.line(trend_counts, x='Период', y='Кандидаты', text='Кандидаты', markers=True, color_discrete_sequence=['#ff7f0e'])
+                fig_trend.update_traces(textposition='top center')
                 fig_trend.update_xaxes(type='category')
                 fig_trend.update_layout(legend_title_text='')
                 st.plotly_chart(fig_trend, use_container_width=True, key="fig_trend_tab1")
@@ -783,7 +786,7 @@ with tab4:
 
 # === ВКЛАДКА 5: ОБЩИЙ ШТАТ (ИЗ ЛИСТА 'Штат') ===
 with tab5:
-    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика: общий штат сотрудников (Лист 'Штат')</b></div><br>", unsafe_allow_html=True)
+    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика: общий штат сотрудников</b></div><br>", unsafe_allow_html=True)
     
     try:
         sheet_name_staff = find_specific_sheet(file_bytes, ['штат', 'staff', 'сотрудники']) or "Штат"
@@ -818,7 +821,7 @@ with tab5:
         total_hired_sum = df_chart['Принят на работу'].sum()
 
         m1, m2 = st.columns(2)
-        m1.metric("Текущая численность штата (на конец периода)", f"{int(latest_total)} чел.")
+        m1.metric("Текущая численность штата", f"{int(latest_total)} чел.")
         m2.metric("Всего принято за период", f"{int(total_hired_sum)} чел.")
 
         st.divider()
@@ -853,7 +856,7 @@ with tab5:
 
 # === ВКЛАДКА 6: GALLUP ===
 with tab6:
-    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика вовлеченности: Gallup Q12</b></div><br>", unsafe_allow_html=True)
+    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика вовлеченности: Gallup</b></div><br>", unsafe_allow_html=True)
     
     try:
         sheet_name_gallup = find_specific_sheet(file_bytes, ['gallup', 'галлоп', 'вовлеченность'])
@@ -877,7 +880,7 @@ with tab6:
                 quarters_list = df_gallup[q_col].dropna().unique()
                 
                 selected_quarters = st.multiselect(
-                    "🗓️ Выберите кварталы для сравнения:", 
+                    "Выберите кварталы для сравнения:", 
                     options=list(quarters_list), 
                     default=list(quarters_list)
                 )
@@ -980,7 +983,7 @@ with tab6:
                     if col_engagement:
                         df_gallup_filtered[col_engagement] = pd.to_numeric(df_gallup_filtered[col_engagement], errors='coerce')
                         
-                        st.markdown(f"#### 🎯 Уровень вовлеченности ({col_engagement})")
+                        st.markdown(f"#### Сравнение показателей вовлеченности")
                         cols_pie = st.columns(len(selected_quarters))
                         for i, q in enumerate(selected_quarters):
                             val = df_gallup_filtered[df_gallup_filtered[q_col] == q][col_engagement].mean()
@@ -1003,52 +1006,6 @@ with tab6:
                                     st.plotly_chart(fig_pie, use_container_width=True, key=f"gallup_pie_{i}")
                                 else:
                                     st.info(f"{q}: Нет данных")
-
-                    st.divider()
-                    st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Сравнение показателей вовлеченности (Q1-Q12)</b></div><br>", unsafe_allow_html=True)
-                    
-                    plot_cols = numeric_cols.copy()
-                    for c in [col_enps, col_sent, col_part, col_detractors, col_passives, col_promoters, col_engagement]:
-                        if c and c in plot_cols:
-                            plot_cols.remove(c)
-
-                    if plot_cols:
-                        df_melted_gallup = df_gallup_filtered.melt(
-                            id_vars=[q_col], 
-                            value_vars=plot_cols, 
-                            var_name='Показатель', 
-                            value_name='Оценка'
-                        )
-                        
-                        fig_gallup_all = px.bar(
-                            df_melted_gallup, 
-                            x='Показатель', 
-                            y='Оценка', 
-                            color=q_col, 
-                            barmode='group',
-                            text='Оценка',
-                            color_discrete_sequence=px.colors.qualitative.Set2
-                        )
-                        fig_gallup_all.update_traces(textposition='outside')
-                        fig_gallup_all.update_layout(xaxis_tickangle=-45)
-                        fig_gallup_all = apply_side_legend(fig_gallup_all)
-                        st.plotly_chart(fig_gallup_all, use_container_width=True, key="fig_gallup_all_metrics")
-                        
-                        st.divider()
-                        st.markdown("#### Лепестковая диаграмма вовлеченности (Радар)")
-                        fig_radar = px.line_polar(
-                            df_melted_gallup,
-                            r='Оценка',
-                            theta='Показатель',
-                            color=q_col,
-                            line_close=True,
-                            markers=True,
-                            color_discrete_sequence=px.colors.qualitative.Set2
-                        )
-                        fig_radar.update_layout(
-                            polar=dict(radialaxis=dict(visible=True, range=[0, df_melted_gallup['Оценка'].max() * 1.1]))
-                        )
-                        st.plotly_chart(fig_radar, use_container_width=True, key="fig_gallup_radar")
 
                     st.markdown("#### Подробные данные опроса Gallup")
                     st.dataframe(df_gallup_filtered, use_container_width=True)
