@@ -26,12 +26,12 @@ USERS_FILE = "users.json"
 # --- Работа с базой данных пользователей (JSON) ---
 def load_users():
     default_users = {
-        "admin": {"password": "admin123", "role": "admin", "name": "Главный Администратор"},
-        "OKevorkova": {"password": "Dashboard", "role": "admin", "name": "Олеся Кеворкова"},
-        "MIsmatulloeva": {"password": "Dashboard", "role": "admin", "name": "Малика Исматуллоева"},
-        "AAhtamdzhonov": {"password": "Dashboard", "role": "admin", "name": "Алишер Ахтамджонов"},
-        "IJuraev": {"password": "Dashboard", "role": "viewer", "name": "Исмоил Джураев"},
-        "viewer1": {"password": "viewer123", "role": "viewer", "name": "Сотрудник (Просмотр)"}
+        "admin": {"password": "admin123", "role": "admin", "name": "Главный Администратор"}, 
+        "OKevorkova": {"password": "Dashboard", "role": "admin", "name": "Олеся Кеворкова"}, 
+        "MIsmatulloeva": {"password": "Dashboard", "role": "admin", "name": "Малика Исматуллоева"}, 
+        "AAhtamdzhonov": {"password": "Dashboard", "role": "admin", "name": "Алишер Ахтамджонов"}, 
+        "IJuraev": {"password": "Dashboard", "role": "viewer", "name": "Исмоил Джураев"}, 
+        "viewer1": {"password": "viewer123", "role": "viewer", "name": "Сотрудник (Просмотр)"} 
     }
     if os.path.exists(USERS_FILE):
         try:
@@ -78,7 +78,7 @@ with st.sidebar:
                     st.session_state['name'] = db[username_input]["name"]
                     st.rerun()
                 else:
-                    st.error("Неверный логин или пароль")
+                    st.error("Неверный логин или пароль!")
         st.stop()
     else:
         st.success(f"Вы вошли как:\n**{st.session_state['name']}**")
@@ -93,7 +93,7 @@ with st.sidebar:
 
     # --- ПАНЕЛЬ УПРАВЛЕНИЯ ДЛЯ АДМИНА ---
     if st.session_state['role'] == "admin":
-        with st.expander("Админ-панель", expanded=False):
+        with st.expander("🛠️ Админ-панель", expanded=False):
             st.subheader("Изменить пароль")
             target_user = st.selectbox("Выберите пользователя", list(st.session_state['users_db'].keys()))
             new_pass = st.text_input("Новый пароль", type="password", key="new_pass_input")
@@ -135,7 +135,7 @@ with st.sidebar:
     file_bytes = None
 
     if st.session_state['role'] == 'admin':
-        st.markdown("Загрузить обновленный файла:")
+        st.markdown("Загрузить Обновленный файла:")
         uploaded_file = st.file_uploader("Загрузить Excel-файл", type=['xlsx'])
         
         if uploaded_file is not None:
@@ -167,7 +167,6 @@ def find_sheet_and_header(file_bytes, keywords):
     return xls.sheet_names[0], 0
 
 def find_specific_sheet(file_bytes, target_keywords):
-    """Ищет лист по ключевым словам в названии"""
     xls = pd.ExcelFile(BytesIO(file_bytes))
     for sheet in xls.sheet_names:
         sheet_lower = sheet.lower().strip()
@@ -200,7 +199,7 @@ def parse_test_score(val):
 def categorize_region(val):
     val_str = str(val).lower()
     if 'филиал' in val_str: return 'Филиал'
-    if 'мхб' in val_str or 'цбо' in val_str: return 'МХБ / ЦБО'
+    if 'мхб' in val_str or 'цбо' in val_str: return 'ЦБО'
     if 'го' in val_str or 'ho' in val_str or 'головной' in val_str or 'центральный' in val_str or 'сарбонк' in val_str: return 'Головной офис'
     return 'Другое'
 
@@ -396,7 +395,7 @@ with tab1:
 
         st.divider()
 
-        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Общее количество кандидатов: Филиалы, МХБ и ГО</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Общее количество кандидатов: Филиалы, ЦБО и ГО</b></div><br>", unsafe_allow_html=True)
 
         if 'Типы' in filtered_rec.columns and 'Все подразделения' in filtered_rec.columns:
             filtered_rec_copy = filtered_rec.copy()
@@ -425,16 +424,16 @@ with tab1:
             st.markdown("#### 3. Общее количество кандидатов по ЦБО")
             mhb_df = filtered_rec_copy[filtered_rec_copy['Типы_str'].str.contains('МХБ|ЦБО|мхб|цбо', na=False, case=False)]
             mhb_data = mhb_df['Подразделение_str'].value_counts(dropna=False).reset_index()
-            mhb_data.columns = ['МХБ/ЦБО', 'Количество']
+            mhb_data.columns = ['ЦБО', 'Количество']
             if not mhb_data.empty:
-                fig_mhb = px.pie(mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
+                fig_mhb = px.pie(mhb_data, names='ЦБО', values='Количество', hole=0.4)
                 fig_mhb.update_traces(textposition='auto', textinfo='value')
                 fig_mhb = apply_side_legend(fig_mhb)
                 st.plotly_chart(fig_mhb, use_container_width=False, key="fig_mhb_tab1")
 
         st.divider()
 
-        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Успешный найм кандидатов: Филиалы, МХБ и ГО (Только принятые)</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Успешный найм кандидатов: Филиалы, ЦБО и ГО (Только принятые)</b></div><br>", unsafe_allow_html=True)
         
         hired_df = filtered_rec[hired_mask].copy()
 
@@ -469,17 +468,17 @@ with tab1:
                 st.info("В филиалах нет найма за этот период")
 
             st.markdown("#### 3. Успешный найм кандидатов по ЦБО")
-            hired_mhb = hired_df[hired_df['Регион_calc'] == 'МХБ / ЦБО']
+            hired_mhb = hired_df[hired_df['Регион_calc'] == 'ЦБО']
             hired_mhb_data = hired_mhb['Подразделение_str'].value_counts().reset_index()
-            hired_mhb_data.columns = ['МХБ/ЦБО', 'Количество']
+            hired_mhb_data.columns = ['ЦБО', 'Количество']
             hired_mhb_data = hired_mhb_data[hired_mhb_data['Количество'] > 0]
             if not hired_mhb_data.empty:
-                fig_hired_mhb = px.pie(hired_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
+                fig_hired_mhb = px.pie(hired_mhb_data, names='ЦБО', values='Количество', hole=0.4)
                 fig_hired_mhb.update_traces(textposition='auto', textinfo='value')
                 fig_hired_mhb = apply_side_legend(fig_hired_mhb)
                 st.plotly_chart(fig_hired_mhb, use_container_width=False, key="fig_hired_mhb_tab1")
             else:
-                st.info("В МХБ / ЦБО нет найма за этот период")
+                st.info("В ЦБО нет найма за этот период")
 
         st.divider()
 
@@ -491,7 +490,6 @@ with tab1:
                 trend_counts = trend_data['Период'].value_counts().reset_index().sort_values('Период')
                 trend_counts.columns = ['Период', 'Кандидаты']
                 
-                # ИЗМЕНЕНИЕ: добавлены цифры над каждой точкой
                 fig_trend = px.line(trend_counts, x='Период', y='Кандидаты', text='Кандидаты', markers=True, color_discrete_sequence=['#ff7f0e'])
                 fig_trend.update_traces(textposition='top center')
                 fig_trend.update_xaxes(type='category')
@@ -567,12 +565,12 @@ with tab2:
                 st.info("В филиалах нет стажёров")
 
             st.markdown("#### 3. Данные по ЦБО")
-            int_mhb = filtered_int[filtered_int['Регион_calc'] == 'МХБ / ЦБО']
+            int_mhb = filtered_int[filtered_int['Регион_calc'] == 'ЦБО']
             int_mhb_data = int_mhb['Подразделение_str'].value_counts().reset_index()
-            int_mhb_data.columns = ['МХБ/ЦБО', 'Количество']
+            int_mhb_data.columns = ['ЦБО', 'Количество']
             int_mhb_data = int_mhb_data[int_mhb_data['Количество'] > 0]
             if not int_mhb_data.empty:
-                fig_int_mhb = px.pie(int_mhb_data, names='МХБ/ЦБО', values='Количество', hole=0.4)
+                fig_int_mhb = px.pie(int_mhb_data, names='ЦБО', values='Количество', hole=0.4)
                 fig_int_mhb.update_traces(textposition='auto', textinfo='value')
                 fig_int_mhb = apply_side_legend(fig_int_mhb)
                 st.plotly_chart(fig_int_mhb, use_container_width=False, key="fig_int_mhb_tab2")
@@ -670,15 +668,15 @@ with tab3:
                 st.info("В филиалах нет данных")
 
             st.markdown("#### 3. Данные по ЦБО")
-            att_mhb = df_att_filtered[df_att_filtered['Регион_calc'] == 'МХБ / ЦБО']
+            att_mhb = df_att_filtered[df_att_filtered['Регион_calc'] == 'ЦБО']
             att_mhb_data = att_mhb['Подразделение_str'].value_counts().reset_index()
-            att_mhb_data.columns = ['МХБ/ЦБО', 'Количество']
+            att_mhb_data.columns = ['ЦБО', 'Количество']
             att_mhb_data = att_mhb_data[att_mhb_data['Количество'] > 0]
             if not att_mhb_data.empty:
                 fig_att_mhb = px.bar(
                     att_mhb_data.sort_values('Количество', ascending=True), 
                     x='Количество', 
-                    y='МХБ/ЦБО', 
+                    y='ЦБО', 
                     orientation='h', 
                     text='Количество', 
                     color='Количество', 
@@ -797,11 +795,13 @@ with tab5:
         df_sheet_staff = pd.read_excel(BytesIO(file_bytes), sheet_name=sheet_name_staff, header=None)
         
         months_raw = df_sheet_staff.iloc[1, 3:15].values
+        start_vals = df_sheet_staff.iloc[2, 3:15].values
         hired_vals = df_sheet_staff.iloc[3, 3:15].values
         resigned_vals = df_sheet_staff.iloc[4, 3:15].values
         end_vals = df_sheet_staff.iloc[5, 3:15].values
         
         months_list = []
+        start_list = []
         hired_list = []
         resigned_list = []
         end_list = []
@@ -810,51 +810,77 @@ with tab5:
             if pd.notna(m):
                 m_str = m.strftime('%Y-%m') if hasattr(m, 'strftime') else str(m)
                 months_list.append(m_str)
+                start_list.append(pd.to_numeric(start_vals[i], errors='coerce'))
                 hired_list.append(pd.to_numeric(hired_vals[i], errors='coerce'))
                 resigned_list.append(pd.to_numeric(resigned_vals[i], errors='coerce'))
                 end_list.append(pd.to_numeric(end_vals[i], errors='coerce'))
 
         df_chart = pd.DataFrame({
             'Месяц': months_list,
+            'Начало периода': start_list,
             'Принят на работу': hired_list,
             'Уволился': resigned_list,
             'Конец периода': end_list
         }).dropna(subset=['Принят на работу', 'Уволился'], how='all')
 
-        latest_total = df_chart['Конец периода'].dropna().iloc[-1] if not df_chart.empty and not df_chart['Конец периода'].dropna().empty else 0
-        total_hired_sum = df_chart['Принят на работу'].sum()
-
-        m1, m2 = st.columns(2)
-        m1.metric("Текущая численность штата", f"{int(latest_total)} чел.")
-        m2.metric("Всего принято за период", f"{int(total_hired_sum)} чел.")
-
-        st.divider()
-
-        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Динамика приема и увольнения сотрудников по месяцам</b></div><br>", unsafe_allow_html=True)
+        # ФИЛЬТР ПО МЕСЯЦАМ
+        st.markdown("**Фильтр по месяцам:**")
+        all_months = df_chart['Месяц'].tolist()
+        selected_months = st.multiselect("Выберите месяцы для анализа:", options=all_months, default=all_months)
         
-        df_melted = df_chart.melt(id_vars=['Месяц'], value_vars=['Принят на работу', 'Уволился'], 
-                                  var_name='Показатель', value_name='Количество')
+        if selected_months:
+            df_filtered = df_chart[df_chart['Месяц'].isin(selected_months)].copy()
+        else:
+            df_filtered = df_chart.copy()
         
-        fig_staff_dynamics = px.bar(
-            df_melted, 
-            x='Месяц', 
-            y='Количество', 
-            color='Показатель', 
-            barmode='group',
-            text='Количество',
-            color_discrete_map={
-                'Принят на работу': '#2ca02c', # Зеленый цвет
-                'Уволился': '#d62728'          # Красный цвет
-            }
-        )
-        fig_staff_dynamics.update_traces(textposition='outside')
-        fig_staff_dynamics = apply_side_legend(fig_staff_dynamics)
-        st.plotly_chart(fig_staff_dynamics, use_container_width=True, key="fig_staff_dynamics_tab5")
+        if not df_filtered.empty:
+            df_filtered = df_filtered.sort_values(by='Месяц')
+            
+            # Подсчет значений с учетом выбранного периода
+            latest_total = df_filtered['Конец периода'].dropna().iloc[-1] if not df_filtered['Конец периода'].dropna().empty else 0
+            first_start = df_filtered['Начало периода'].dropna().iloc[0] if not df_filtered['Начало периода'].dropna().empty else 0
+            
+            total_hired_sum = df_filtered['Принят на работу'].sum()
+            total_resigned_sum = df_filtered['Уволился'].sum()
+            
+            # РАСЧЕТ ПРОЦЕНТА РОСТА ИЛИ СПАДА
+            percent_increase = ((latest_total - first_start) / first_start) * 100 if first_start and first_start > 0 else 0.0
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### Подробная таблица штатного расписания по месяцам")
-        st.dataframe(df_chart, use_container_width=True)
-        
+            m1, m2, m3 = st.columns(3)
+            # Отображаем метрику с дельтой
+            m1.metric("Текущая численность (на конец периода)", f"{int(latest_total)} чел.", f"{percent_increase:+.1f}%")
+            m2.metric("Всего принято", f"{int(total_hired_sum)} чел.")
+            m3.metric("Всего уволилось", f"{int(total_resigned_sum)} чел.")
+
+            st.divider()
+
+            st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Динамика приема и увольнения сотрудников по месяцам</b></div><br>", unsafe_allow_html=True)
+            
+            df_melted = df_filtered.melt(id_vars=['Месяц'], value_vars=['Принят на работу', 'Уволился'], 
+                                      var_name='Показатель', value_name='Количество')
+            
+            fig_staff_dynamics = px.bar(
+                df_melted, 
+                x='Месяц', 
+                y='Количество', 
+                color='Показатель', 
+                barmode='group',
+                text='Количество',
+                color_discrete_map={
+                    'Принят на работу': '#2ca02c', # Зеленый цвет
+                    'Уволился': '#d62728'          # Красный цвет
+                }
+            )
+            fig_staff_dynamics.update_traces(textposition='outside')
+            fig_staff_dynamics = apply_side_legend(fig_staff_dynamics)
+            st.plotly_chart(fig_staff_dynamics, use_container_width=True, key="fig_staff_dynamics_tab5")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("#### Подробная таблица штатного расписания по месяцам")
+            st.dataframe(df_filtered, use_container_width=True)
+        else:
+            st.warning("Нет данных для выбранных месяцев.")
+            
     except Exception as e:
         st.error(f"Не удалось прочитать данные штата: {e}")
 
