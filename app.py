@@ -361,12 +361,11 @@ with tab1:
         else:
             gender_text = "Нет данных"
 
-        m1, m2, m3, m4, m5 = st.columns(5)
+        m1, m2, m3, m4 = st.columns(4)
         m1.metric("Общее кол. кандидатов:", f"{total_candidates} чел.")
         m2.metric("Успешно трудоустроено", f"{hired} чел.")
-        m3.metric("Эффективность подбора персонала:", f"{conv_rate:.1f}%")
-        m4.metric("М / Ж (по найму)", gender_text)
-        m5.metric("Ср. возраст (по найму)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
+        m3.metric("М / Ж (по найму)", gender_text)
+        m4.metric("Ср. возраст (по найму)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
 
         st.divider()
 
