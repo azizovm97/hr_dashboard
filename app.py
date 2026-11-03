@@ -288,7 +288,7 @@ def load_daraja_data(file_bytes: bytes):
     xls = pd.ExcelFile(BytesIO(file_bytes))
     target_sheet = None
     for sheet in xls.sheet_names:
-        if 'дараҷа' in sheet.lower() or 'дарача' in sheet.lower():
+        if 'Категория' in sheet.lower() or 'дарача' in sheet.lower():
             target_sheet = sheet
             break
             
@@ -314,7 +314,7 @@ df_daraja = load_daraja_data(file_bytes)
 
 # --- Вкладки ---
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "Аналитика найма", "Аналитика стажёров", "Аттестация", "Корпоративное обучение", "Общий штат", "Gallup", "Дараҷа"
+    "Аналитика найма", "Аналитика стажёров", "Аттестация", "Корпоративное обучение", "Общий штат", "Gallup", "Категория"
 ])
 
 # === ВКЛАДКА 1: НАЙМ ===
@@ -1048,10 +1048,10 @@ with tab6:
     except Exception as e:
         st.error(f"Ошибка при чтении листа Gallup: {e}")
 
-# === ВКЛАДКА 7: ДАРАҶА ===
+# === ВКЛАДКА 7: Категория ===
 with tab7:
     if df_daraja is not None:
-        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика: Изменение грейда (Дараҷа)</b></div><br>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #D32F2F; color: white; padding: 10px; border-radius: 8px; text-align: center;'><b>Аналитика: Изменение грейда (Категория)</b></div><br>", unsafe_allow_html=True)
         
         date_col_daraja = next((c for c in df_daraja.columns if 'дата' in c.lower()), None)
         
@@ -1084,7 +1084,7 @@ with tab7:
             failed = df_daraja['Комментарий_clean'].str.contains('не прошёл|отказ|не сдал', case=False, na=False).sum()
             
             m1, m2, m3 = st.columns(3)
-            m1.metric("Всего кандидатов на дараҷа", f"{total_daraja} чел.")
+            m1.metric("Всего кандидатов на Категория", f"{total_daraja} чел.")
             m2.markdown(f"""
                 <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #2e7d32;">
                     <p style="margin:0; font-size: 14px; color: #555;">Успешно (Прошёл)</p>
@@ -1144,4 +1144,4 @@ with tab7:
         st.dataframe(df_daraja, use_container_width=True)
         
     else:
-        st.warning("Файл по Дараҷа не загружен.")
+        st.warning("Файл по Категория не загружен.")
