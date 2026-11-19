@@ -11,11 +11,7 @@ st.set_page_config(page_title="HR Analytics Dashboard", layout="wide")
 
 # --- Главное название внутри красной рамки ---
 st.markdown(
-    """
-    <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;">
-        <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Dashboard</h1>
-    </div>
-    """,
+    """ <div style="border: 3px solid red; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 25px;"> <h1 style="margin: 0; padding: 0; font-size: 2.5rem; color: inherit;">HR Dashboard</h1> </div> """,
     unsafe_allow_html=True
 )
 
@@ -174,6 +170,66 @@ def find_specific_sheet(file_bytes, target_keywords):
             if kw in sheet_lower:
                 return sheet
     return None
+
+@st.cache_data(show_spinner=False)
+def calculate_staff_turnover(file_bytes: bytes, start_date, end_date):
+    """Рассчитывает текучесть за все месяцы, пересекающиеся с выбранным периодом."""
+    try:
+        sheet_name = find_specific_sheet(
+            file_bytes, ['штат', 'staff', 'сотрудники']
+        )
+        if not sheet_name:
+            return np.nan, 0, np.nan
+
+        df_staff = pd.read_excel(
+            BytesIO(file_bytes), sheet_name=sheet_name, header=None
+        )
+
+        # Структура листа «Штат»: месяцы — строка 2, начало — строка 3,
+        # увольнения — строка 5, конец — строка 6; месячные данные D:O.
+        months_raw = df_staff.iloc[1, 3:15].values
+        start_vals = df_staff.iloc[2, 3:15].values
+        resigned_vals = df_staff.iloc[4, 3:15].values
+        end_vals = df_staff.iloc[5, 3:15].values
+
+        start_period = pd.Period(pd.Timestamp(start_date), freq='M')
+        end_period = pd.Period(pd.Timestamp(end_date), freq='M')
+        records = []
+
+        for i, month_value in enumerate(months_raw):
+            if pd.isna(month_value):
+                continue
+
+            month_date = pd.to_datetime(month_value, errors='coerce')
+            if pd.isna(month_date):
+                continue
+
+            month_period = month_date.to_period('M')
+            if not (start_period <= month_period <= end_period):
+                continue
+
+            start_count = pd.to_numeric(start_vals[i], errors='coerce')
+            resigned = pd.to_numeric(resigned_vals[i], errors='coerce')
+            end_count = pd.to_numeric(end_vals[i], errors='coerce')
+
+            if pd.notna(start_count) and pd.notna(end_count):
+                records.append({
+                    'Уволилось': abs(resigned) if pd.notna(resigned) else 0,
+                    'Средняя численность': (start_count + end_count) / 2
+                })
+
+        if not records:
+            return np.nan, 0, np.nan
+
+        staff_df = pd.DataFrame(records)
+        total_resigned = staff_df['Уволилось'].sum()
+        avg_staff = staff_df['Средняя численность'].mean()
+        turnover = total_resigned / avg_staff * 100 if avg_staff > 0 else np.nan
+
+        return turnover, int(total_resigned), avg_staff
+    except Exception:
+        return np.nan, 0, np.nan
+
 
 def parse_test_score(val):
     if pd.isna(val):
@@ -361,11 +417,28 @@ with tab1:
         else:
             gender_text = "Нет данных"
 
-        m1, m2, m3, m4 = st.columns(4)
+        # Коэффициент текучести рассчитывается по листу «Штат» за месяцы,
+        # которые пересекаются с выбранным периодом регистрации.
+        if isinstance(date_range_rec, (tuple, list)) and len(date_range_rec) == 2:
+            turnover_rate, total_resigned, avg_staff = calculate_staff_turnover(
+                file_bytes, date_range_rec[0], date_range_rec[1]
+            )
+        else:
+            turnover_rate, total_resigned, avg_staff = np.nan, 0, np.nan
+
+        m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("Общее кол. кандидатов:", f"{total_candidates} чел.")
         m2.metric("Успешно трудоустроено", f"{hired} чел.")
         m3.metric("М / Ж (по найму)", gender_text)
         m4.metric("Ср. возраст (по найму)", f"{avg_age:.1f} лет" if not pd.isna(avg_age) else "Нет данных")
+        m5.metric(
+            "Коэффициент текучести",
+            f"{turnover_rate:.2f}%" if pd.notna(turnover_rate) else "Нет данных",
+            help=(
+                f"Уволилось: {total_resigned} чел. | "
+                f"Средняя численность: {avg_staff:.1f} чел."
+            ) if pd.notna(avg_staff) else "Нет данных по штатной численности за выбранный период"
+        )
 
         st.divider()
 
@@ -1085,18 +1158,8 @@ with tab7:
             
             m1, m2, m3 = st.columns(3)
             m1.metric("Всего кандидатов на Категория", f"{total_daraja} чел.")
-            m2.markdown(f"""
-                <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #2e7d32;">
-                    <p style="margin:0; font-size: 14px; color: #555;">Успешно (Прошёл)</p>
-                    <h3 style="margin:0; color: #2e7d32;">{passed} чел.</h3>
-                </div>
-            """, unsafe_allow_html=True)
-            m3.markdown(f"""
-                <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; border-left: 5px solid #c62828;">
-                    <p style="margin:0; font-size: 14px; color: #555;">Не успешно (Не прошёл)</p>
-                    <h3 style="margin:0; color: #c62828;">{failed} чел.</h3>
-                </div>
-            """, unsafe_allow_html=True)
+            m2.markdown(f""" <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #2e7d32;"> <p style="margin:0; font-size: 14px; color: #555;">Успешно (Прошёл)</p> <h3 style="margin:0; color: #2e7d32;">{passed} чел.</h3> </div> """, unsafe_allow_html=True)
+            m3.markdown(f""" <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; border-left: 5px solid #c62828;"> <p style="margin:0; font-size: 14px; color: #555;">Не успешно (Не прошёл)</p> <h3 style="margin:0; color: #c62828;">{failed} чел.</h3> </div> """, unsafe_allow_html=True)
             
             st.divider()
             
